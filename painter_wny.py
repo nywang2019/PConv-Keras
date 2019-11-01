@@ -157,41 +157,46 @@ class Paint(object):
             self.out.create_image(0, 0, image=self.blank_tk, anchor=NW)
 
     def save(self):
-        img = np.array(self.displayPhoto)
-        cv2.imwrite(os.path.join(self.filepath, 'tmp.png'), img)
+        #img = np.array(self.displayPhoto)
+        #cv2.imwrite(os.path.join(self.filepath, 'tmp.png'), img)
 
         if self.mode == 'rect':
-            self.mask[:,:,:] = 0
+            self.mask[:,:,:] = 1
             for rect in self.mask_candidate:
-                self.mask[rect[1]:rect[3], rect[0]:rect[2], :] = 1
+                self.mask[rect[1]:rect[3], rect[0]:rect[2], :] = 0
+        #self.mask=1-self.mask
         cv2.imwrite(os.path.join(self.filepath, self.filename_+'_mask.png'), self.mask*255)
         #wny cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.result[0][:, :, ::-1])
-        cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.predicted_img)
+        #cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.predicted_img)
+        cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), cv2.cvtColor(self.predicted_img, cv2.COLOR_BGR2RGB))
 
     def fill(self):
         if self.mode == 'rect':
             for rect in self.mask_candidate:
                 self.mask[rect[1]:rect[3], rect[0]:rect[2], :] = 1
         ########################################################################
+        # wny: to create a three-channel mask, input the original single-layer mask's value to each channel of new mask：
         mask_channel=np.zeros_like(self.image)
         mask_channel[:, :, 0] = self.mask[:,:,0]
         mask_channel[:, :, 1] = self.mask[:,:,0]
         mask_channel[:, :, 2] = self.mask[:,:,0]
-        #self.mask=np.vstack((mask_channel1,mask_channel2,mask_channel3))
         self.mask=mask_channel
+        # wny: to exchange 0 with 1, 1 with 0 in new mask:
         self.mask=1-self.mask
         image_temp = Image.open(self.filename)
         image_temp =np.array(image_temp)/255
+        # wny: add mask to input image:
         image_temp[self.mask==0]=1
         image = np.expand_dims(image_temp, 0)
         mask = np.expand_dims(self.mask, 0)
-        ########################################################################
-        # wny: chanage the size of mask from [m,n,1] to [m,n,3]
 
         ########################################################################
         print(image.shape)
         print(mask.shape)
-        cv2.imwrite('./imgs/generated_input_image.png', image_temp*255)
+
+        image_temp = Image.fromarray(np.uint8(image_temp*255))
+        image_temp.save('./imgs/generated_input_image.png')
+
         cv2.imwrite('./imgs/generated_mask_image.png', self.mask*255)
         #########################################################################
         # wny
@@ -201,9 +206,9 @@ class Paint(object):
         self.predicted_img = (self.model.predict([image, mask])[0])*255
 
         # wny cv2.imwrite('./imgs/tmp.png', self.result[0][:, :, ::-1])
-        cv2.imwrite('./imgs/tmp.png', self.predicted_img)
+        cv2.imwrite('./imgs/result.png', cv2.cvtColor(self.predicted_img, cv2.COLOR_BGR2RGB))
         ##########################################################################
-        photo = Image.open('./imgs/tmp.png')
+        photo = Image.open('./imgs/result.png')
         self.displayPhotoResult = photo
         self.displayPhotoResult = self.displayPhotoResult.resize((self.im_w, self.im_h))
         self.photo_tk_result = ImageTk.PhotoImage(image=self.displayPhotoResult)
