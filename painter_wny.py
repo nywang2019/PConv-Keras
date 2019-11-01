@@ -31,33 +31,37 @@ class Paint(object):
         self.config = config
 
         self.root = Tk()
-
-        self.rect_button = Button(self.root, text='rectangle', command=self.use_rect, width=12, height=3)
-        self.rect_button.grid(row=0, column=2)
-
-        self.poly_button = Button(self.root, text='stroke', command=self.use_poly, width=12, height=3)
-        self.poly_button.grid(row=1, column=2)
-
-        self.revoke_button = Button(self.root, text='revoke', command=self.revoke, width=12, height=3)
-        self.revoke_button.grid(row=2, column=2)
-
-        self.clear_button = Button(self.root, text='clear', command=self.clear, width=12, height=3)
-        self.clear_button.grid(row=3, column=2)
-
-        self.c = Canvas(self.root, bg='white', width=config.img_shapes[1]+8, height=config.img_shapes[0])
+        self.root.title("Image Inpainting (V0.1)")
+        self.c = Canvas(self.root, bg='white', width=config.img_shapes[1] + 8, height=config.img_shapes[0])
         self.c.grid(row=0, column=0, rowspan=8)
 
-        self.out = Canvas(self.root, bg='white', width=config.img_shapes[1]+8, height=config.img_shapes[0])
+        # self.LabelArea=Label(text="中国", bg="green", font=("Arial", 12), width=10, height=2)
+        # self.LabelArea.grid(row=1, column=0, rowspan=1)
+
+        self.out = Canvas(self.root, bg='white', width=config.img_shapes[1] + 8, height=config.img_shapes[0])
         self.out.grid(row=0, column=1, rowspan=8)
+
+        self.load_button = Button(self.root, text='load', command=self.load, width=12, height=3)
+        self.load_button.grid(row=0, column=2)
+
+        self.rect_button = Button(self.root, text='rectangle', command=self.use_rect, width=12, height=3)
+        self.rect_button.grid(row=1, column=2)
+
+        self.poly_button = Button(self.root, text='stroke', command=self.use_poly, width=12, height=3)
+        self.poly_button.grid(row=2, column=2)
+
+        self.fill_button = Button(self.root, text='fill', command=self.fill, width=12, height=3)
+        self.fill_button.grid(row=3, column=2)
+
+        self.clear_button = Button(self.root, text='clear', command=self.clear, width=12, height=3)
+        self.clear_button.grid(row=4, column=2)
+
+        self.revoke_button = Button(self.root, text='revoke', command=self.revoke, width=12, height=3)
+        self.revoke_button.grid(row=5, column=2)
 
         self.save_button = Button(self.root, text="save", command=self.save, width=12, height=3)
         self.save_button.grid(row=6, column=2)
 
-        self.load_button = Button(self.root, text='load', command=self.load, width=12, height=3)
-        self.load_button.grid(row=5, column=2)
-
-        self.fill_button = Button(self.root, text='fill', command=self.fill, width=12, height=3)
-        self.fill_button.grid(row=7, column=2)
         self.filename = None
 
         self.setup()
@@ -141,7 +145,8 @@ class Paint(object):
             print('do not load image')
         else:
             self.im_w, self.im_h = photo.size
-            self.mask = np.zeros((self.im_h, self.im_w, 1)).astype(np.uint8)
+            self.mask= np.zeros((self.im_h, self.im_w, 3)).astype(np.uint8)
+            #self.mask=np.zeros_like(self.image)
             print(photo.size)
             self.displayPhoto = photo
             self.displayPhoto = self.displayPhoto.resize((self.im_w, self.im_h))
@@ -161,11 +166,11 @@ class Paint(object):
         #cv2.imwrite(os.path.join(self.filepath, 'tmp.png'), img)
 
         if self.mode == 'rect':
-            self.mask[:,:,:] = 1
+            self.mask[:,:,:] = 0
             for rect in self.mask_candidate:
-                self.mask[rect[1]:rect[3], rect[0]:rect[2], :] = 0
+                self.mask[rect[1]:rect[3], rect[0]:rect[2], :] = 1
         #self.mask=1-self.mask
-        cv2.imwrite(os.path.join(self.filepath, self.filename_+'_mask.png'), self.mask*255)
+        cv2.imwrite(os.path.join(self.filepath, self.filename_+'_mask.png'), (1-self.mask)*255)
         #wny cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.result[0][:, :, ::-1])
         #cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.predicted_img)
         cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), cv2.cvtColor(self.predicted_img, cv2.COLOR_BGR2RGB))
@@ -182,13 +187,13 @@ class Paint(object):
         mask_channel[:, :, 2] = self.mask[:,:,0]
         self.mask=mask_channel
         # wny: to exchange 0 with 1, 1 with 0 in new mask:
-        self.mask=1-self.mask
+        #self.mask=1-self.mask
         image_temp = Image.open(self.filename)
         image_temp =np.array(image_temp)/255
         # wny: add mask to input image:
-        image_temp[self.mask==0]=1
+        image_temp[self.mask==1]=1
         image = np.expand_dims(image_temp, 0)
-        mask = np.expand_dims(self.mask, 0)
+        mask = np.expand_dims(1-self.mask, 0)
 
         ########################################################################
         print(image.shape)
@@ -197,7 +202,7 @@ class Paint(object):
         image_temp = Image.fromarray(np.uint8(image_temp*255))
         image_temp.save('./imgs/generated_input_image.png')
 
-        cv2.imwrite('./imgs/generated_mask_image.png', self.mask*255)
+        cv2.imwrite('./imgs/generated_mask_image.png', (1-self.mask)*255)
         #########################################################################
         # wny
         # self.result = self.sess.run(self.output, feed_dict={self.input_image_tf: image * 1.0,
