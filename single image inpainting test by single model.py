@@ -19,8 +19,8 @@ from libs.util import MaskGenerator, ImageChunker
 # %autoreload 2
 
 # SETTINGS
-SAMPLE_IMAGE = 'data/sample_image11.jpg'
-#SAMPLE_IMAGE = 'data/Thanka_test.png'
+#SAMPLE_IMAGE = 'data/sample_image11.jpg'
+SAMPLE_IMAGE = 'data/Thanka_test.png'
 BATCH_SIZE = 1
 
 im = Image.open(SAMPLE_IMAGE)
@@ -41,7 +41,8 @@ im[mask==0] = 1
 # Create a model instance and import pre trained image_net weights provided by the author.
 from libs.pconv_model import PConvUnet
 model = PConvUnet(vgg_weights=None, inference_only=True)
-model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\pconv_imagenet.26-1.07.h5", train_bn=False)
+#model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\pconv_imagenet.26-1.07.h5", train_bn=False)
+model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\weights.07-1.89.h5", train_bn=False)
 #output the predicted image
 predicted_img = model.predict([
                         np.expand_dims(im,0),
