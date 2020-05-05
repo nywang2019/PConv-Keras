@@ -45,27 +45,44 @@ class MaskGenerator():
         size = int((self.width + self.height) * 0.03)
         if self.width < 64 or self.height < 64:
             raise Exception("Width and Height of mask must be at least 64!")
-        
+
         # Draw random lines
         for _ in range(randint(1, 20)):
             x1, x2 = randint(1, self.width), randint(1, self.width)
             y1, y2 = randint(1, self.height), randint(1, self.height)
             thickness = randint(3, size)
-            cv2.line(img,(x1,y1),(x2,y2),(1,1,1),thickness)
-            
+            cv2.line(img, (x1, y1), (x2, y2), (1, 1, 1), thickness)
+
         # Draw random circles
         for _ in range(randint(1, 20)):
             x1, y1 = randint(1, self.width), randint(1, self.height)
             radius = randint(3, size)
-            cv2.circle(img,(x1,y1),radius,(1,1,1), -1)
-            
-        # Draw random ellipses
+            cv2.circle(img, (x1, y1), radius, (1, 1, 1), -1)
+
+        # Draw random ellipse curves
         for _ in range(randint(1, 20)):
             x1, y1 = randint(1, self.width), randint(1, self.height)
             s1, s2 = randint(1, self.width), randint(1, self.height)
             a1, a2, a3 = randint(3, 180), randint(3, 180), randint(3, 180)
             thickness = randint(3, size)
-            cv2.ellipse(img, (x1,y1), (s1,s2), a1, a2, a3,(1,1,1), thickness)
+            cv2.ellipse(img, (x1, y1), (s1, s2), a1, a2, a3, (1, 1, 1), thickness)
+
+        # Draw random rectangles  【added by wny】
+        for _ in range(randint(1, 2)):
+            x1, y1 = randint(1, self.width), randint(1, self.height)
+            length = randint(32, 48)
+            cv2.rectangle(img, (x1, y1), (x1+length, y1+length), (1, 1, 1), -1)
+
+        # Draw random triangles  【added by wny】
+        for _ in range(randint(1, 2)):
+            x1 = randint(50, self.width - 50)
+            y1 = randint(1, self.height - 50)
+            x2 = x1 + randint(5, 50)
+            y2 = y1 + randint(5, 50)
+            x3 = x2 - randint(5, 50-1)
+            y3 = y2 + randint(5, 50)
+            triangle = np.array([[x1, y1], [x2, y2], [x3, y3]])
+            cv2.fillConvexPoly(img, triangle, (1, 1, 1))
         
         return 1-img
 
