@@ -1,3 +1,5 @@
+# This file is to interactively inpaint image and display image inpainting result in realtime.
+# Created by wny 2019.10 Canada
 from tkinter import *
 from PIL import Image, ImageTk, ImageDraw
 import tkinter.filedialog as tkFileDialog
@@ -31,36 +33,39 @@ class Paint(object):
         self.config = config
 
         self.root = Tk()
-        self.root.title("Image Inpainting (V0.1)")
-        self.c = Canvas(self.root, bg='white', width=config.img_shapes[1] + 8, height=config.img_shapes[0])
-        self.c.grid(row=0, column=0, rowspan=8)
-
+        self.root.title("Image Inpainting (V1.0)")
         # self.LabelArea=Label(text="中国", bg="green", font=("Arial", 12), width=10, height=2)
         # self.LabelArea.grid(row=1, column=0, rowspan=1)
+
+        self.c = Canvas(self.root, bg='white', width=config.img_shapes[1] + 8, height=config.img_shapes[0])
+        self.c.grid(row=0, column=0, rowspan=8)
 
         self.out = Canvas(self.root, bg='white', width=config.img_shapes[1] + 8, height=config.img_shapes[0])
         self.out.grid(row=0, column=1, rowspan=8)
 
+        self.out2 = Canvas(self.root, bg='white', width=config.img_shapes[1] + 8, height=config.img_shapes[0])
+        self.out2.grid(row=0, column=2, rowspan=8)
+
         self.load_button = Button(self.root, text='load', command=self.load, width=12, height=3)
-        self.load_button.grid(row=0, column=2)
+        self.load_button.grid(row=0, column=3)
 
         self.rect_button = Button(self.root, text='rectangle', command=self.use_rect, width=12, height=3)
-        self.rect_button.grid(row=1, column=2)
+        self.rect_button.grid(row=1, column=3)
 
         self.poly_button = Button(self.root, text='stroke', command=self.use_poly, width=12, height=3)
-        self.poly_button.grid(row=2, column=2)
+        self.poly_button.grid(row=2, column=3)
 
         self.fill_button = Button(self.root, text='fill', command=self.fill, width=12, height=3)
-        self.fill_button.grid(row=3, column=2)
+        self.fill_button.grid(row=3, column=3)
 
         self.clear_button = Button(self.root, text='clear', command=self.clear, width=12, height=3)
-        self.clear_button.grid(row=4, column=2)
+        self.clear_button.grid(row=4, column=3)
 
-        self.revoke_button = Button(self.root, text='revoke', command=self.revoke, width=12, height=3)
-        self.revoke_button.grid(row=5, column=2)
+        self.revoke_button = Button(self.root, text='    ', command=self.revoke, width=12, height=3)
+        self.revoke_button.grid(row=5, column=3)
 
         self.save_button = Button(self.root, text="save", command=self.save, width=12, height=3)
-        self.save_button.grid(row=6, column=2)
+        self.save_button.grid(row=6, column=3)
 
         self.filename = None
 
@@ -69,6 +74,7 @@ class Paint(object):
 
     def setup(self):
         self.predicted_img=None
+        self.predicted_img2 = None
         self.old_x = None
         self.old_y = None
         self.start_x = None
@@ -83,7 +89,7 @@ class Paint(object):
         self.c.bind('<Button-1>', self.beginPaint)
         self.c.bind('<Enter>', self.icon2pen)
         self.c.bind('<Leave>', self.icon2mice)
-        self.mode = 'rect'
+        self.mode = 'poly'
         self.rect_buf = None
         self.line_buf = None
         assert self.mode in ['rect', 'poly']
@@ -95,11 +101,12 @@ class Paint(object):
         self.mask = None
         self.result = None
         self.blank = None
-        self.line_width = 24
+        self.line_width = 20
 
         ##################################################################
         # wny self.model = GMCNNModel()
         self.model=PConvUnet()
+        self.model2=PConvUnet()
         self.reuse = False
         sess_config = tf.ConfigProto()
         sess_config.gpu_options.allow_growth = False
@@ -122,7 +129,14 @@ class Paint(object):
         # assign_ops = list(map(lambda x: tf.assign(x, tf.contrib.framework.load_variable(config.load_model_dir, x.name)),
         #                       vars_list))
         # self.sess.run(assign_ops)
-        self.model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\pconv_imagenet.26-1.07.h5", train_bn=False)
+        #self.model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\pconv_imagenet.26-1.07.h5", train_bn=False)
+        # P1T1
+        # self.model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\weights.07-1.89.h5", train_bn=False)
+        # P1T2
+        # self.model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\weights.10-1.74.h5", train_bn=False)
+        # P1T3
+        self.model.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\Thanka_phase1\p1t152\weights.31-1.20.h5", train_bn=False)
+        self.model2.load(r"D:\PycharmProjects2\PConv-Keras\data\logs\Thanka_phase1\p1t169\weights.13-0.98.h5",train_bn=False)
         # wny
         ###############################################################
         print('Model loaded.')
@@ -133,8 +147,8 @@ class Paint(object):
     def load(self):
         self.filename = tkFileDialog.askopenfilename(initialdir='./imgs',
                                                      title="Select file",
-                                                     filetypes=(("png files", "*.png"), ("jpg files", "*.jpg"),
-                                                                ("all files", "*.*")))
+                                                     filetypes=(("all files", "*.*"), ("png files", "*.png"), ("jpg files", "*.jpg")
+                                                                ))
         self.filename_ = self.filename.split('/')[-1][:-4]
         self.filepath = '/'.join(self.filename.split('/')[:-1])
         print(self.filename_, self.filepath)
@@ -160,6 +174,7 @@ class Paint(object):
             self.blank = self.blank.resize((self.im_w, self.im_h))
             self.blank_tk = ImageTk.PhotoImage(image=self.blank)
             self.out.create_image(0, 0, image=self.blank_tk, anchor=NW)
+            self.out2.create_image(0, 0, image=self.blank_tk, anchor=NW)
 
     def save(self):
         #img = np.array(self.displayPhoto)
@@ -173,7 +188,8 @@ class Paint(object):
         cv2.imwrite(os.path.join(self.filepath, self.filename_+'_mask.png'), (1-self.mask)*255)
         #wny cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.result[0][:, :, ::-1])
         #cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), self.predicted_img)
-        cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_gm_result.png'), cv2.cvtColor(self.predicted_img, cv2.COLOR_BGR2RGB))
+        cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_result.png'), cv2.cvtColor(self.predicted_img, cv2.COLOR_BGR2RGB))
+        cv2.imwrite(os.path.join(self.filepath, self.filename_ + '_result2.png'),cv2.cvtColor(self.predicted_img2, cv2.COLOR_BGR2RGB))
 
     def fill(self):
         if self.mode == 'rect':
@@ -200,24 +216,31 @@ class Paint(object):
         print(mask.shape)
 
         image_temp = Image.fromarray(np.uint8(image_temp*255))
-        image_temp.save('./imgs/generated_input_image.png')
+        image_temp.save('./imgs/masked_input.png')
 
-        cv2.imwrite('./imgs/generated_mask_image.png', (1-self.mask)*255)
+        cv2.imwrite('./imgs/mask.png', (1-self.mask)*255)
         #########################################################################
         # wny
         # self.result = self.sess.run(self.output, feed_dict={self.input_image_tf: image * 1.0,
         #                                                     self.input_mask_tf: mask * 1.0})
         # output the predicted image
         self.predicted_img = (self.model.predict([image, mask])[0])*255
+        self.predicted_img2 = (self.model2.predict([image, mask])[0]) * 255
 
         # wny cv2.imwrite('./imgs/tmp.png', self.result[0][:, :, ::-1])
         cv2.imwrite('./imgs/result.png', cv2.cvtColor(self.predicted_img, cv2.COLOR_BGR2RGB))
+        cv2.imwrite('./imgs/result2.png', cv2.cvtColor(self.predicted_img2, cv2.COLOR_BGR2RGB))
         ##########################################################################
         photo = Image.open('./imgs/result.png')
+        photo2 = Image.open('./imgs/result2.png')
         self.displayPhotoResult = photo
+        self.displayPhotoResult2 = photo2
         self.displayPhotoResult = self.displayPhotoResult.resize((self.im_w, self.im_h))
+        self.displayPhotoResult2 = self.displayPhotoResult2.resize((self.im_w, self.im_h))
         self.photo_tk_result = ImageTk.PhotoImage(image=self.displayPhotoResult)
+        self.photo_tk_result2 = ImageTk.PhotoImage(image=self.displayPhotoResult2)
         self.out.create_image(0, 0, image=self.photo_tk_result, anchor=NW)
+        self.out2.create_image(0, 0, image=self.photo_tk_result2, anchor=NW)
         return
 
     def use_rect(self):
