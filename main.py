@@ -4,7 +4,6 @@ import datetime
 import numpy as np
 import pandas as pd
 import cv2
-
 from argparse import ArgumentParser
 from copy import deepcopy
 from tqdm import tqdm
@@ -146,8 +145,9 @@ if __name__ == '__main__':
     )
     train_generator = train_datagen.flow_from_directory(
         args.train, 
+        #MaskGenerator(512, 512, 3, rand_seed=42, filepath='./data/masks/train'),
         MaskGenerator(512, 512, 3),
-        target_size=(512, 512), 
+        target_size=(512, 512),
         batch_size=args.batch_size
     )
 
@@ -155,8 +155,9 @@ if __name__ == '__main__':
     val_datagen = AugmentingDataGenerator(rescale=1./255)
     val_generator = val_datagen.flow_from_directory(
         args.validation, 
-        MaskGenerator(512, 512, 3), 
-        target_size=(512, 512), 
+        #MaskGenerator(512, 512, 3, rand_seed=42, filepath='./data/masks/train'),
+        MaskGenerator(512, 512, 3),
+        target_size=(512, 512),
         batch_size=args.batch_size, 
         # classes=['val'],
         seed=42
@@ -166,8 +167,9 @@ if __name__ == '__main__':
     test_datagen = AugmentingDataGenerator(rescale=1./255)
     test_generator = test_datagen.flow_from_directory(
         args.test, 
-        MaskGenerator(512, 512, 3), 
-        target_size=(512, 512), 
+        #MaskGenerator(512, 512, 3, rand_seed=42, filepath='./data/masks/train'),
+        MaskGenerator(512, 512, 3),
+        target_size=(512, 512),
         batch_size=args.batch_size, 
         seed=42
     )
@@ -213,10 +215,10 @@ if __name__ == '__main__':
     # Fit model
     model.fit_generator(
         train_generator,
-        steps_per_epoch=100,
+        steps_per_epoch=500,
         validation_data=val_generator,
-        validation_steps=100,
-        epochs=2,
+        validation_steps=200,
+        epochs=3,
         verbose=0,
         callbacks=[
             TensorBoard(
